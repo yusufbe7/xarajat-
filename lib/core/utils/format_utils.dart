@@ -1,40 +1,53 @@
 import 'package:intl/intl.dart';
+import '../constants/app_constants.dart';
+import '../localization/locale_controller.dart';
 
 class FormatUtils {
-  static final _sumFormatter = NumberFormat('#,###', 'uz_UZ');
+  // Probel bilan guruhlash (1 000 000) — uz va ru uchun ham mos.
+  static final _grouped = NumberFormat('#,###', 'en_US');
+
+  static String _group(int value) =>
+      _grouped.format(value).replaceAll(',', ' ');
+
+  static String _unit() => LocaleController.languageCode == 'ru' ? 'сум' : "so'm";
+  static String _thousand() =>
+      LocaleController.languageCode == 'ru' ? 'тыс. сум' : "ming so'm";
+  static String _million() =>
+      LocaleController.languageCode == 'ru' ? 'млн сум' : "mln so'm";
+  static String _billion() =>
+      LocaleController.languageCode == 'ru' ? 'млрд сум' : "mlrd so'm";
 
   static String formatCurrency(double amount) {
-    return '${_sumFormatter.format(amount.toInt())} so\'m';
+    return '${_group(amount.toInt())} ${_unit()}';
   }
 
   static String formatCurrencyCompact(double amount) {
-    if (amount >= 1000000000) {
-      return '${(amount / 1000000000).toStringAsFixed(1)} mlrd so\'m';
-    } else if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)} mln so\'m';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)} ming so\'m';
+    final abs = amount.abs();
+    final sign = amount < 0 ? '-' : '';
+    if (abs >= 1000000000) {
+      return '$sign${(abs / 1000000000).toStringAsFixed(1)} ${_billion()}';
+    } else if (abs >= 1000000) {
+      return '$sign${(abs / 1000000).toStringAsFixed(1)} ${_million()}';
+    } else if (abs >= 1000) {
+      return '$sign${(abs / 1000).toStringAsFixed(0)} ${_thousand()}';
     }
-    return '${amount.toInt()} so\'m';
+    return '$sign${abs.toInt()} ${_unit()}';
   }
 
   static String formatDate(DateTime date) {
-    final months = [
-      'yan', 'fev', 'mar', 'apr', 'may', 'iyn',
-      'iyl', 'avg', 'sen', 'okt', 'noy', 'dek'
-    ];
+    final lang = LocaleController.languageCode;
     final now = DateTime.now();
     if (date.day == now.day &&
         date.month == now.month &&
         date.year == now.year) {
-      return 'Bugun';
+      return lang == 'ru' ? 'Сегодня' : 'Bugun';
     }
     final yesterday = now.subtract(const Duration(days: 1));
     if (date.day == yesterday.day &&
         date.month == yesterday.month &&
         date.year == yesterday.year) {
-      return 'Kecha';
+      return lang == 'ru' ? 'Вчера' : 'Kecha';
     }
-    return '${date.day} ${months[date.month - 1]}';
+    return '${date.day} ${AppConstants.monthShort(date.month, lang)}';
   }
 }
