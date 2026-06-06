@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:uuid/uuid.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../core/localization/locale_controller.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../data/models/transaction_model.dart';
 import '../../../data/repositories/transaction_repository.dart';
 
@@ -32,6 +34,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        setState(() => _selectedCategory = null);
+      }
+    });
   }
 
   @override
@@ -49,10 +56,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
       _isIncome ? AppConstants.incomeCategories : AppConstants.expenseCategories;
 
   Future<void> _save() async {
+    final l10n = context.l10n;
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kategoriya tanlang')),
+        SnackBar(content: Text(l10n.selectCategory)),
       );
       return;
     }
@@ -66,7 +74,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
       type: _isIncome ? TransactionType.income : TransactionType.expense,
       categoryId: _selectedCategory!,
       date: _selectedDate,
-      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+      note: _noteController.text.trim().isEmpty
+          ? null
+          : _noteController.text.trim(),
     );
 
     await _repo.add(t);
@@ -75,9 +85,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    final l10n = context.l10n;
+    final lang = LocaleController.languageCode;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Yangi operatsiya'),
+        title: Text(l10n.newTransaction),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Iconsax.arrow_left),
@@ -91,28 +105,27 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
             // Type selector
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: c.surfaceVariant,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: TabBar(
                 controller: _tabController,
-                onTap: (_) => setState(() => _selectedCategory = null),
                 indicator: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: Colors.white,
-                unselectedLabelColor: AppColors.textSecondary,
+                unselectedLabelColor: c.textSecondary,
                 labelStyle: const TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
                 padding: const EdgeInsets.all(4),
                 dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: '💰 Kirim'),
-                  Tab(text: '💸 Chiqim'),
+                tabs: [
+                  Tab(text: l10n.tabIncome),
+                  Tab(text: l10n.tabExpense),
                 ],
               ),
             ),
@@ -124,21 +137,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
               controller: _amountController,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+                color: c.textPrimary,
                 letterSpacing: -0.5,
               ),
-              decoration: const InputDecoration(
-                labelText: 'Summa (so\'mda)',
-                prefixIcon: Icon(Iconsax.coin, color: AppColors.accent),
+              decoration: InputDecoration(
+                labelText: l10n.amountLabel,
+                prefixIcon: const Icon(Iconsax.coin, color: AppColors.accent),
                 hintText: '0',
               ),
               validator: (v) {
-                if (v == null || v.isEmpty) return 'Summani kiriting';
+                if (v == null || v.isEmpty) return l10n.enterAmount;
                 if (double.tryParse(v) == null || double.parse(v) <= 0) {
-                  return 'To\'g\'ri summa kiriting';
+                  return l10n.enterValidAmount;
                 }
                 return null;
               },
@@ -150,24 +163,24 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
             TextFormField(
               controller: _titleController,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Sarlavha',
-                prefixIcon: Icon(Iconsax.edit_2, color: AppColors.primary),
-                hintText: 'Masalan: Korzinkaga borish',
+              decoration: InputDecoration(
+                labelText: l10n.titleLabel,
+                prefixIcon: const Icon(Iconsax.edit_2, color: AppColors.primary),
+                hintText: l10n.titleHint,
               ),
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Sarlavha kiriting' : null,
+                  (v == null || v.trim().isEmpty) ? l10n.enterTitle : null,
             ),
 
             const Gap(20),
 
             // Category
-            const Text(
-              'Kategoriya',
+            Text(
+              l10n.category,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: c.textPrimary,
               ),
             ),
             const Gap(10),
@@ -180,12 +193,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
                   onTap: () => setState(() => _selectedCategory = cat.id),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? Color(cat.colorHex).withOpacity(0.15)
-                          : AppColors.surfaceVariant,
+                          : c.surfaceVariant,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: isSelected
@@ -200,7 +213,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
                         Text(cat.emoji, style: const TextStyle(fontSize: 16)),
                         const Gap(6),
                         Text(
-                          cat.name,
+                          cat.localizedName(lang),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: isSelected
@@ -208,7 +221,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
                                 : FontWeight.w500,
                             color: isSelected
                                 ? Color(cat.colorHex)
-                                : AppColors.textSecondary,
+                                : c.textSecondary,
                           ),
                         ),
                       ],
@@ -228,14 +241,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
                   initialDate: _selectedDate,
                   firstDate: DateTime(2020),
                   lastDate: DateTime.now(),
-                  locale: const Locale('uz'),
+                  locale: Locale(lang),
                 );
                 if (d != null) setState(() => _selectedDate = d);
               },
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
+                  color: c.surfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -244,11 +257,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
                         color: AppColors.primary, size: 22),
                     const Gap(12),
                     Text(
-                      '${_selectedDate.day} ${AppConstants.months[_selectedDate.month - 1]} ${_selectedDate.year}',
-                      style: const TextStyle(
+                      '${_selectedDate.day} ${AppConstants.monthName(_selectedDate.month, lang)} ${_selectedDate.year}',
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: c.textPrimary,
                       ),
                     ),
                   ],
@@ -262,10 +275,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
             TextFormField(
               controller: _noteController,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Izoh (ixtiyoriy)',
-                prefixIcon: Icon(Iconsax.note_text, color: AppColors.primary),
-                hintText: 'Qo\'shimcha ma\'lumot...',
+              decoration: InputDecoration(
+                labelText: l10n.noteLabel,
+                prefixIcon: const Icon(Iconsax.note_text, color: AppColors.primary),
+                hintText: l10n.noteHint,
               ),
             ),
 
@@ -285,7 +298,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text('Saqlash'),
+                    : Text(l10n.save),
               ),
             ),
           ],

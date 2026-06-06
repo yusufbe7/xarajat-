@@ -23,9 +23,13 @@
 | Kategoriyalar | ✅ |
 | Oylik statistika | ✅ |
 | Pie chart tahlil | ✅ |
+| 6 oylik trend grafigi | ✅ |
+| Davr bo'yicha filtr (oy/o'tgan oy/hammasi) | ✅ |
+| Jamg'arma foizi | ✅ |
 | Local saqlash (Hive) | ✅ |
 | O'zbek tili | ✅ |
-| Dark mode | 🔜 |
+| Rus tili (uz/ru almashtirish) | ✅ |
+| Dark mode | ✅ |
 | Byudjet limiti | 🔜 |
 | Payme/Click ulanish | 🔜 |
 | Widget (home screen) | 🔜 |

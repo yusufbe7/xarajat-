@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:intl/intl.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/constants/app_constants.dart';
-import '../../data/models/transaction_model.dart';
-import '../../data/repositories/transaction_repository.dart';
-import '../widgets/balance_card.dart';
-import '../widgets/transaction_tile.dart';
-import 'add_transaction/add_transaction_screen.dart';
-import 'analytics/analytics_screen.dart';
-import 'settings/settings_screen.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../core/localization/locale_controller.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../data/models/transaction_model.dart';
+import '../../../data/repositories/transaction_repository.dart';
+import '../../widgets/balance_card.dart';
+import '../../widgets/transaction_tile.dart';
+import '../add_transaction/add_transaction_screen.dart';
+import '../analytics/analytics_screen.dart';
+import '../settings/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,10 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _previousMonth() {
     setState(() {
-      _selectedMonth = DateTime(
-        _selectedMonth.year,
-        _selectedMonth.month - 1,
-      );
+      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
     });
   }
 
@@ -55,21 +53,46 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     setState(() {
-      _selectedMonth = DateTime(
-        _selectedMonth.year,
-        _selectedMonth.month + 1,
-      );
+      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
     });
   }
 
+  bool get _isCurrentMonth {
+    final now = DateTime.now();
+    return _selectedMonth.year == now.year && _selectedMonth.month == now.month;
+  }
+
   String get _monthLabel {
-    return '${AppConstants.months[_selectedMonth.month - 1]} ${_selectedMonth.year}';
+    final lang = LocaleController.languageCode;
+    return '${AppConstants.monthName(_selectedMonth.month, lang)} ${_selectedMonth.year}';
+  }
+
+  Future<void> _deleteTransaction(TransactionModel t) async {
+    await _repo.delete(t.id);
+    setState(() {});
+    if (!mounted) return;
+    final l10n = context.l10n;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(l10n.transactionDeleted),
+          action: SnackBarAction(
+            label: l10n.undo,
+            onPressed: () async {
+              await _repo.add(t);
+              setState(() {});
+            },
+          ),
+        ),
+      );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark,
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
         body: IndexedStack(
           index: _currentIndex,
@@ -92,6 +115,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeTab() {
+    final c = AppColors.of(context);
+    final l10n = context.l10n;
+    final transactions = _transactions;
     return SafeArea(
       child: CustomScrollView(
         slivers: [
@@ -102,40 +128,43 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Salom! 👋',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.greeting,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: c.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const Gap(2),
-                      Text(
-                        'Hisobingiz',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -0.5,
+                        const Gap(2),
+                        Text(
+                          l10n.yourAccount,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: c.textPrimary,
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   Container(
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
+                      color: c.surfaceVariant,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
                           onPressed: _previousMonth,
                           icon: const Icon(Iconsax.arrow_left_2, size: 18),
-                          color: AppColors.textSecondary,
+                          color: c.textSecondary,
                           padding: const EdgeInsets.all(8),
                           constraints: const BoxConstraints(),
                         ),
@@ -143,17 +172,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                           child: Text(
                             _monthLabel,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
+                              color: c.textPrimary,
                             ),
                           ),
                         ),
                         IconButton(
-                          onPressed: _nextMonth,
+                          onPressed: _isCurrentMonth ? null : _nextMonth,
                           icon: const Icon(Iconsax.arrow_right_3, size: 18),
-                          color: AppColors.textSecondary,
+                          color: _isCurrentMonth
+                              ? c.textHint
+                              : c.textSecondary,
                           padding: const EdgeInsets.all(8),
                           constraints: const BoxConstraints(),
                         ),
@@ -184,21 +215,21 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'So\'nggi operatsiyalar',
+                  Text(
+                    l10n.recentTransactions,
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: c.textPrimary,
                       letterSpacing: -0.3,
                     ),
                   ),
-                  if (_transactions.isNotEmpty)
+                  if (transactions.isNotEmpty)
                     Text(
-                      '${_transactions.length} ta',
-                      style: const TextStyle(
+                      l10n.countItems(transactions.length),
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: c.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -208,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // Transactions list
-          _transactions.isEmpty
+          transactions.isEmpty
               ? SliverFillRemaining(
                   hasScrollBody: false,
                   child: _buildEmptyState(),
@@ -216,19 +247,16 @@ class _HomeScreenState extends State<HomeScreen> {
               : SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      final t = _transactions[index];
+                      final t = transactions[index];
                       return Padding(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                         child: TransactionTile(
                           transaction: t,
-                          onDelete: () async {
-                            await _repo.delete(t.id);
-                            setState(() {});
-                          },
+                          onDelete: () => _deleteTransaction(t),
                         ),
                       );
                     },
-                    childCount: _transactions.length,
+                    childCount: transactions.length,
                   ),
                 ),
 
@@ -239,6 +267,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildEmptyState() {
+    final c = AppColors.of(context);
+    final l10n = context.l10n;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -247,31 +277,31 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
+              color: c.surfaceVariant,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Iconsax.receipt_item,
               size: 36,
-              color: AppColors.textHint,
+              color: c.textHint,
             ),
           ),
           const Gap(16),
-          const Text(
-            'Bu oyda operatsiya yo\'q',
+          Text(
+            l10n.noTransactionsThisMonth,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: c.textSecondary,
             ),
           ),
           const Gap(8),
-          const Text(
-            '+ tugmani bosib birinchi\nxarajatingizni kiriting',
+          Text(
+            l10n.noTransactionsHint,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textHint,
+              color: c.textHint,
               height: 1.5,
             ),
           ),
@@ -281,28 +311,30 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBottomNav() {
+    final c = AppColors.of(context);
+    final l10n = context.l10n;
     return Container(
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: c.border, width: 1)),
       ),
       child: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Iconsax.home_2),
-            activeIcon: Icon(Iconsax.home_25),
-            label: 'Asosiy',
+            icon: const Icon(Iconsax.home_2),
+            activeIcon: const Icon(Iconsax.home_25),
+            label: l10n.navHome,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Iconsax.chart),
-            activeIcon: Icon(Iconsax.chart5),
-            label: 'Tahlil',
+            icon: const Icon(Iconsax.chart),
+            activeIcon: const Icon(Iconsax.chart5),
+            label: l10n.navAnalytics,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Iconsax.setting_2),
-            activeIcon: Icon(Iconsax.setting_25),
-            label: 'Sozlamalar',
+            icon: const Icon(Iconsax.setting_2),
+            activeIcon: const Icon(Iconsax.setting_25),
+            label: l10n.navSettings,
           ),
         ],
       ),

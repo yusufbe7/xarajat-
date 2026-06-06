@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/format_utils.dart';
 
@@ -18,6 +19,7 @@ class BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -25,7 +27,7 @@ class BalanceCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primaryDark],
+          colors: [AppColors.primaryLight, AppColors.primaryDark],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
@@ -39,23 +41,41 @@ class BalanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Umumiy balans',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.2,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Iconsax.money,
+                    color: Colors.white, size: 18),
+              ),
+              const Gap(10),
+              Text(
+                l10n.totalBalance,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
           ),
-          const Gap(8),
-          Text(
-            FormatUtils.formatCurrency(balance),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -1,
+          const Gap(14),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              FormatUtils.formatCurrency(balance),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -1,
+              ),
             ),
           ),
           const Gap(24),
@@ -64,7 +84,7 @@ class BalanceCard extends StatelessWidget {
               Expanded(
                 child: _StatItem(
                   icon: Iconsax.arrow_down,
-                  label: 'Kirim',
+                  label: l10n.income,
                   amount: income,
                   color: const Color(0xFF4ADE80),
                 ),
@@ -77,7 +97,7 @@ class BalanceCard extends StatelessWidget {
               Expanded(
                 child: _StatItem(
                   icon: Iconsax.arrow_up,
-                  label: 'Chiqim',
+                  label: l10n.expense,
                   amount: expense,
                   color: const Color(0xFFFF6B6B),
                 ),
